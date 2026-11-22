@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "ember",
+  "version": "${version}",
+  "name": "Ember Client",
+  "description": "Ember Client: ClickGUI, Spotify sky lyrics, emotes, freecam, 3D rainbow crystals, totem FX and more.",
+  "authors": [
+    "You"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.ember.client.EmberClient"
+    ]
+  },
+  "mixins": [
+    "ember.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "icon": "assets/ember/icon.png"
+}

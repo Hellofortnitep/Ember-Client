@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ember.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BipedEntityModelMixin",
+    "CameraMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "EndCrystalEntityRendererMixin",
+    "EntityMixin",
+    "GameRendererMixin",
+    "KeyboardInputMixin",
+    "KeyboardMixin",
+    "MinecraftClientMixin",
+    "MouseMixin",
+    "SimpleOptionAccessor",
+    "TitleScreenMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}
