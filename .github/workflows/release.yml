@@ -1,0 +1,116 @@
+# Builds the Ember mod + Ember Launcher for Windows and Mac on every push to main,
+# publishes them as a GitHub Release, and updates the download page.
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  mod:
+    name: Build Ember mod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        working-directory: ember-client
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+          rm -f build/libs/*-sources.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ember-mod
+          path: ember-client/build/libs/*.jar
+
+  launcher:
+    name: Build launcher (${{ matrix.name }})
+    needs: mod
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            target: --win
+          - os: macos-latest
+            name: Mac
+            target: --mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ember-mod
+          path: ember-launcher/bundled
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        working-directory: ember-launcher
+        run: npm install
+      - name: Package
+        working-directory: ember-launcher
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            ember-launcher/dist/*.exe
+            ember-launcher/dist/*.dmg
+
+  release:
+    name: Publish release
+    needs: launcher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Ember (build ${{ github.run_number }})
+          make_latest: true
+          body: |
+            **Windows:** download `Ember-Launcher-Setup.exe`
+            **Mac:** download `Ember-Launcher-Mac.dmg`
+            **Just the mod (CurseForge/Modrinth users):** the `ember-client-*.jar`
+          files: out/*
+
+  pages:
+    name: Update download page
+    needs: release
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sed -i "s#__REPO__#${{ github.repository }}#g" docs/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4
